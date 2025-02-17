@@ -1,0 +1,10 @@
+/Game/Logs
+/Game/Library
+/Game/Temp
+/Game/UserSettings
+/Game/Assets/Models
+
+.venv/Lib
+.venv/Scripts
+.venv/pyvenv.cfg
+.venv/CACHEDIR.TAG
