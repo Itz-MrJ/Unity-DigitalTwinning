@@ -12,7 +12,7 @@ public class ExtenderController : MonoBehaviour{
     private Vector3 extenderScale, extenderPosition, originalHand, handPos;
     void Start(){
         RobotInstance.RIM.AddExtender(ID, this);
-        fixedMaxY = RobotInstance.RIM.MainExtenderMaxLength[ID];
+        fixedMaxY = RobotInstance.RIM.GetMainExtenderMaxLength(ID);
         extenderPosition = extender.transform.localPosition;
         extenderScale = extender.transform.localScale;
 
@@ -39,6 +39,7 @@ public class ExtenderController : MonoBehaviour{
             hand.transform.localPosition += new Vector3(0, speed * Time.deltaTime * 2, 0);
             yield return null;
         }
+        RobotInstance.RIM.SendCommand("end_time", "client");
         extender.transform.localScale = new Vector3(extender.transform.localScale.x, minY, extender.transform.localScale.z);
     }
 
@@ -62,6 +63,7 @@ public class ExtenderController : MonoBehaviour{
             hand.transform.localPosition -= new Vector3(0, speed * Time.deltaTime * 2, 0);
             yield return null;
         }
+        RobotInstance.RIM.SendCommand("end_time", "client");
         extender.transform.localScale = new Vector3(extender.transform.localScale.x, maxY, extender.transform.localScale.z);
     }
 }

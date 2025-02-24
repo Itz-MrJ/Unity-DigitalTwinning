@@ -8,18 +8,18 @@ using System.Text;
 public class RobotInstance : MonoBehaviour
 {
 	public static RobotInstance RIM;
-	public List<BodyController> MainBodyInstance = new List<BodyController>(new BodyController[10]);
+	private List<BodyController> MainBodyInstance = new List<BodyController>(new BodyController[10]);
+	private List<ExtenderController> MainExtenderInstance = new List<ExtenderController>(new ExtenderController[10]);
+	private List<float> MainExtenderMaxLength = new List<float>() { 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f };
+	private List<SphereDetector> MainSphereInstance = new List<SphereDetector>(new SphereDetector[10]);
 
-	public List<ExtenderController> MainExtenderInstance = new List<ExtenderController>(new ExtenderController[10]);
-	public List<float> MainExtenderMaxLength = new List<float>() { 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f, 0.19f };
-	public List<SphereDetector> MainSphereInstance = new List<SphereDetector>(new SphereDetector[10]);
-
-	private TcpClient client;
-	private NetworkStream stream;
+	private TcpClient client, listener;
+	private NetworkStream stream, listenerStream;
 	private byte[] data = new byte[1024];
 	private string IP = "127.0.0.1";
-	private int port = 5001;
-	public string movement = "readyToMoveBodyAutomate";
+	private int port = 5001, listenerPort =  5002;
+	private string movement = "readyToMoveBodyManually";
+	// private string movement = "TimeTest";
 	private bool btnClicked = false;
 
 	private void Awake()
@@ -40,9 +40,15 @@ public class RobotInstance : MonoBehaviour
 			client = new TcpClient();
 			await client.ConnectAsync(IP, port);
 			stream = client.GetStream();
-			Debug.Log("Connected to server");
+			Debug.Log("Connected to server & sending " + movement);
 			GetData();
-			SendCommand(movement);
+			SendCommand(movement, "client");
+
+			return;
+			listener = new TcpClient();
+			await listener.ConnectAsync(IP, listenerPort);
+			listenerStream = listener.GetStream();
+			Debug.Log("Connected to server");
 		}
 		catch (Exception e)
 		{
@@ -58,21 +64,32 @@ public class RobotInstance : MonoBehaviour
 		public float distance;
 		public int id;
 	}
-	private async void SendCommand(string command)
+	public async void SendCommand(string command, string dest)
 	{
-		if (btnClicked) return;
-		btnClicked = true;
-		if (client.Connected)
-		{
-			byte[] data = Encoding.UTF8.GetBytes(command + "\n"); // Add newline for proper parsing
-			await stream.WriteAsync(data, 0, data.Length);
-			Debug.Log($"Sent to server {command}");
+		// if (btnClicked) return;
+		// btnClicked = true;
+		if(dest == "client"){
+			if (client.Connected)
+			{
+				byte[] data = Encoding.UTF8.GetBytes(command + "\n"); // Add newline for proper parsing
+				await stream.WriteAsync(data, 0, data.Length);
+				Debug.Log($"Sent to server {command}");
+			}
+		}else{
+			return;
+			if (listener.Connected)
+			{
+				byte[] data = Encoding.UTF8.GetBytes(command + "\n"); // Add newline for proper parsing
+				await listenerStream.WriteAsync(data, 0, data.Length);
+				Debug.Log($"Sent to listener {command}");
+			}
 		}
 	}
 	private void HandleInput(string json)
 	{
 		Wrapper wrap = JsonUtility.FromJson<Wrapper>(json);
 
+		SendCommand("action_start", "client");
 		if (wrap.op == "forward") AMRManager.AMRIM.GetAMR(wrap.id).MoveForward(wrap.id, wrap.distance);
 		else if (wrap.op == "rotate")
 		{
@@ -107,6 +124,7 @@ public class RobotInstance : MonoBehaviour
 			try
 			{
 				int bytesRead = await stream.ReadAsync(data, 0, data.Length);
+				SendCommand("received", "client");
 				if (bytesRead > 0)
 				{
 					string json = Encoding.UTF8.GetString(data, 0, bytesRead).Trim();
@@ -159,5 +177,9 @@ public class RobotInstance : MonoBehaviour
 	public SphereDetector GetSphere(int i)
 	{
 		return MainSphereInstance[i];
+	}
+
+	public float GetMainExtenderMaxLength(int id) {
+		return MainExtenderMaxLength[id];
 	}
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 public class StopperDetector : MonoBehaviour
 {
     private Collider other;
-    private float speed = 0.2f;
+    private float speed = 0.1f;
     private List<bool> ToStop = new List<bool>() {false, false, false, false, false, false, false, false, false, false};
     public int RobotID, ID;
     void Start()

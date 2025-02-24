@@ -46,6 +46,7 @@ public class BodyController : MonoBehaviour
             body.transform.rotation = Quaternion.RotateTowards(body.transform.rotation, bodyPosition, speed * Time.deltaTime);
             yield return null;
         }
+        RobotInstance.RIM.SendCommand("end_time", "client");
         body.transform.rotation = bodyPosition;
         isMoving = false;
     }

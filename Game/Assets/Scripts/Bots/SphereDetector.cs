@@ -24,6 +24,7 @@ public class SphereDetector : MonoBehaviour
         scheduleDrop = true;
         other.transform.parent = null;
         other.GetComponent<Rigidbody>().isKinematic = false;
+        RobotInstance.RIM.SendCommand("end_time", "client");
         StartCoroutine(DelayedFunctionCoroutine(3f));
     }
 

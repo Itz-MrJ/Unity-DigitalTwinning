@@ -8,6 +8,7 @@ using System;
 public class ButtonFunctionality : MonoBehaviour
 {
     // Start is called before the first frame update
+    public static ButtonFunctionality BFM;
     public GameObject mainBtnLeft, submitBtn, inputSection, section;
     private Text mainBtnText;
     // 0 = starting
@@ -15,10 +16,21 @@ public class ButtonFunctionality : MonoBehaviour
     private List<string> subs = new List<string>();
     private Button btn, submitListener;
     private HashSet<int> listenerCount = new HashSet<int>();
-    public List<SectionControls> MainSectionControls = new List<SectionControls>() {
-        new SectionControls("AMR", 1),
-        new SectionControls("Robot", 2),
+    private List<SectionControls> Section_1_Controls = new List<SectionControls>() {
+        new SectionControls("AMR 0", 1),
+        new SectionControls("AMR 1", 2),
+        new SectionControls("AMR 5", 3),
+        new SectionControls("Robot 0", 4)
     };
+    private List<SectionControls> Section_2_Controls = new List<SectionControls>() {
+        new SectionControls("AMR 2", 1),
+        new SectionControls("AMR 3", 2),
+        new SectionControls("AMR 4", 3),
+        new SectionControls("Robot 1", 4),
+        new SectionControls("Robot 2", 5),
+        new SectionControls("Robot 3", 6)
+    };
+    private string BOT = null;
     public List<SectionControls> RobotControls = new List<SectionControls>() {
         new SectionControls("Rotate", 1),
         new SectionControls("Drop", 2),
@@ -29,6 +41,10 @@ public class ButtonFunctionality : MonoBehaviour
         new SectionControls("Forward", 1),
         new SectionControls("Rotate", 2),
     };
+    void Awake(){
+        if(BFM == null)BFM = this;
+        else Destroy(gameObject);
+    }
     void Start()
     {
         mainBtnText = mainBtnLeft.transform.GetChild(0).gameObject.GetComponent<Text>();
@@ -60,8 +76,8 @@ public class ButtonFunctionality : MonoBehaviour
             Debug.Log($"NOT ENOUGH {subs[0]} {subs.Count}");
             return;
         }
-        ;
-        Debug.Log(subs[0] + " " + subs[1] + " " + subs[2] + inputSection.GetComponent<InputField>().text);
+        RobotInstance.RIM.SendCommand($"Section: {subs[0]}\nPart: {subs[1]}\nOperation: {subs[2]}\nDistance: {inputSection.GetComponent<InputField>().text}", "listener");
+        Debug.Log("TRANSMIT DATA: " + subs[0] + " " + subs[1] + " " + subs[2] + inputSection.GetComponent<InputField>().text);
         if (subs[0] == "Section 1")
         {
             string[] part = subs[1].Split(' ');
@@ -70,35 +86,39 @@ public class ButtonFunctionality : MonoBehaviour
                 if (subs[2] == "forward")
                 {
                     float id = float.Parse(part[1], CultureInfo.InvariantCulture.NumberFormat);
-                    AMRManager.AMRIM.GetAMR((int)id - 1).MoveForward((int)id - 1, float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat));
+                    AMRManager.AMRIM.GetAMR((int)id).MoveForward((int)id, float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat));
                 }
                 else if (subs[2] == "rotate")
                 {
                     float id = float.Parse(part[1], CultureInfo.InvariantCulture.NumberFormat);
-                    AMRManager.AMRIM.GetAMR((int)id - 1).Rotate((int)id - 1, float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat));
+                    AMRManager.AMRIM.GetAMR((int)id).Rotate((int)id, float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat));
                 }
             }
             else if (part[0] == "Robot")
             {
+                // Check if Body has operation is holding or is having an object at docker.
+                // Check if at docker there is an object to pick
+                float id = float.Parse(part[1], CultureInfo.InvariantCulture.NumberFormat);
+                Data od = RobotInstance.RIM.GetBody((int) id).gameObject.GetComponent<Data>();
+                if(od != null){
+                    Debug.Log($"ULTRA NEW SHIT: {RobotInstance.RIM.GetSphere((int)id).gameObject.transform.childCount}");
+                    if(AMRManager.AMRIM.GetAMR(od.RobotID).gameObject.transform.GetChild(0).childCount == 0 && RobotInstance.RIM.GetSphere((int)id).gameObject.transform.childCount == 0) return;
+                }
                 if (subs[2] == "rotate")
                 {
-                    float id = float.Parse(part[1], CultureInfo.InvariantCulture.NumberFormat);
-                    RobotInstance.RIM.GetBody((int)id - 1).handleMoveBody((int)id - 1, float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat));
+                    RobotInstance.RIM.GetBody((int)id).handleMoveBody((int)id, float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat));
                 }
                 else if (subs[2] == "drop")
                 {
-                    float id = float.Parse(part[1], CultureInfo.InvariantCulture.NumberFormat);
-                    RobotInstance.RIM.GetExtender((int)id - 1).DropExtender(float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat), (int)id - 1);
+                    RobotInstance.RIM.GetExtender((int)id).DropExtender(float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat), (int)id);
                 }
                 else if (subs[2] == "lift")
                 {
-                    float id = float.Parse(part[1], CultureInfo.InvariantCulture.NumberFormat);
-                    RobotInstance.RIM.GetExtender((int)id - 1).LiftExtender(float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat), (int)id - 1);
+                    RobotInstance.RIM.GetExtender((int)id).LiftExtender(float.Parse(inputSection.GetComponent<InputField>().text, CultureInfo.InvariantCulture.NumberFormat), (int)id);
                 }
                 else if (subs[2] == "release")
                 {
-                    float id = float.Parse(part[1], CultureInfo.InvariantCulture.NumberFormat);
-                    RobotInstance.RIM.GetSphere((int)id - 1).Release((int)id - 1);
+                    RobotInstance.RIM.GetSphere((int)id).Release((int)id);
                 }
             }
         }
@@ -186,6 +206,10 @@ public class ButtonFunctionality : MonoBehaviour
         transform.GetChild(i).gameObject.transform.GetChild(0).gameObject.GetComponent<Text>().color = newColor;
     }
 
+    public string GetBot(){
+        return BOT;
+    }
+
     private void resetColors(int i)
     {
         transform.GetChild(i).gameObject.transform.GetChild(0).gameObject.GetComponent<Text>().color = Color.black;
@@ -203,14 +227,12 @@ public class ButtonFunctionality : MonoBehaviour
         Debug.Log("LISTENER COUNT: " + listenerCount.Count + " BTNCLICKED: " + btnText.text + " Page: " + page + " Subs: " + subs.Count);
         if (page >= 4)
         {
-            // Debug.Log($"SubsCount: {subs.Count}\n Page: {page}");
+            Debug.Log($"SubsCount: {subs.Count}\n Page: {page}");
             // subs.RemoveAt(1);
             subs.RemoveAt(2);
             page = 2;
             for (int i = 1; i <= 6; i++)
-            {
                 resetColors(i);
-            }
             inputSection.GetComponent<InputField>().text = "";
         }
 
@@ -232,30 +254,29 @@ public class ButtonFunctionality : MonoBehaviour
             if (btnText.text == "Section 1")
             {
                 subs.Add("Section 1");
-                ShowSection(MainSectionControls, "Section 1");
+                ShowSection(Section_1_Controls, "Section 1");
                 // showInputSection("D");
             }
             else if (btnText.text == "Section 2")
             {
                 subs.Add("Section 2");
-                ShowSection(MainSectionControls, "Section 2");
+                ShowSection(Section_2_Controls, "Section 2");
                 // showInputSection("D");
             }
         }
         else if (subs.Count == 1)
         {
-            if (btnText.text == "AMR")
+            string[] part = btnText.text.Split(' ');
+            subs.Add(btnText.text);
+            showInputSection("D");
+            BOT = btnText.text;
+            if (part[0] == "AMR")
             {
-                subs.Add("AMR 1");
-                // SubSection = "AMR";
-                ShowSection(AMRControls, subs[0] + " - AMR 1");
-                showInputSection("D");
+                ShowSection(AMRControls,$"{subs[0]} - {btnText.text}");
             }
-            if (btnText.text == "Robot")
+            if (part[0] == "Robot")
             {
-                subs.Add("Robot 1");
-                ShowSection(RobotControls, $"{subs[0]} - Robot 1");
-                showInputSection("D");
+                ShowSection(RobotControls, $"{subs[0]} - {btnText.text}");
             }
         }
         else
@@ -263,6 +284,8 @@ public class ButtonFunctionality : MonoBehaviour
             // Rotate - Body
             // Drop - Extender
             string[] part = subs[1].Split(' ');
+            Debug.Log($"CHOSE OP {part[0]} && {part[1]} && {btnText.text}\nSubsCount: {subs.Count}");
+            showInputSection("D");
             if (part[0] == "Robot")
             {
                 if (btnText.text == "Rotate")
@@ -324,15 +347,13 @@ public class ButtonFunctionality : MonoBehaviour
         if (i == 1)
         {
             mainBtnText.text = "Back";
-            for (int j = 0; j < 2; j++)
-            {
-                showButtons(j + 1, (j == 0) ? "Section 1" : "Section 2");
-            }
+            for (int j = 0; j < 2; j++) showButtons(j + 1, (j == 0) ? "Section 1" : "Section 2");
         }
     }
 
     private void mainBtnClicked()
     {
+        BOT = null;
         try
         {
             // Starting page
@@ -354,28 +375,24 @@ public class ButtonFunctionality : MonoBehaviour
             // Going back from MainSectionControls
             else if (page == 2)
             {
+                Debug.Log("GOING BACK FROM 2 MOSTLY");
                 subs.RemoveAt(subs.Count - 1);
                 page = 1;
                 setSectionTitle("");
+                for (int i = 1; i <= 8; i++) hideButtons(i);
                 loadPage(1);
-                // ShowSection(MainSectionControls, "Section 1");
-                // for (int i = 1; i <= 8; i++) hideButtons(i);
-                // foreach (SectionControls section in MainSectionControls) showButtons(section.position, section.name);
-                // setSectionTitle("Section 1");
             }
             else if (page >= 3)
             {
-                Debug.Log($"GOING BACK FROM 3 {subs.Count}");
+                Debug.Log($"GOING BACK FROM 3 {subs.Count} {subs[0]} {subs[1]}");
                 page = 2;
+                if(subs.Count == 3) subs.RemoveAt(subs.Count - 1);
                 subs.RemoveAt(subs.Count - 1);
-                subs.RemoveAt(subs.Count - 1);
-                for (int i = 1; i <= 6; i++)
-                {
-                    resetColors(i);
-                }
                 hideInputSection();
+                for (int i = 1; i <= 6; i++) { resetColors(i); hideButtons(i); }
+                for (int i = 7; i <= 8; i++) hideButtons(i);
                 inputSection.GetComponent<InputField>().text = "";
-                ShowSection(MainSectionControls, subs[0]);
+                ShowSection(subs[0] == "Section 1" ? Section_1_Controls : Section_2_Controls, subs[0]);
             }
             // else if (page == 4)
             // {
