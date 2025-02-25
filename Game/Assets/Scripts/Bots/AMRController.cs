@@ -110,7 +110,21 @@ public class AMRController : MonoBehaviour
                 ob.GetComponent<NavMeshObstacle>().enabled = true;
                 AMRManager.AMRIM.SetLastPosition(ID, null);
             }else{
+                Vector3 pos1 = AMRManager.AMRIM.GetLastPosition(ID).Value;
+                Vector3 pos2 = ob.transform.position;
+                Vector3 roundedPos1 = new Vector3(
+                    Mathf.Round(pos1.x * 100f) / 100f,
+                    Mathf.Round(pos1.y * 100f) / 100f,
+                    Mathf.Round(pos1.z * 100f) / 100f
+                );
+                Vector3 roundedPos2 = new Vector3(
+                    Mathf.Round(pos2.x * 100f) / 100f,
+                    Mathf.Round(pos2.y * 100f) / 100f,
+                    Mathf.Round(pos2.z * 100f) / 100f
+                );
+                // Debug.Log($"COMPARING {roundedPos1}, {roundedPos2} {roundedPos1 == roundedPos2}");
                 AMRManager.AMRIM.SetLastPosition(ID, ob.transform.position);
+                if(roundedPos1 != roundedPos2) RobotInstance.RIM.SendCommand($"AMR: {ID}\nPosition: {pos2}", "listener");
             }
             // For Grid Movement -
             // GameObject ob = AMRManager.AMRIM.GetAMR(ID).gameObject;
@@ -144,15 +158,19 @@ public class AMRController : MonoBehaviour
                         agent.enabled = true;
                         // Not docker
                         if(position.Length != 3){
+                            NavMeshPath navPath = new NavMeshPath();
+                            agent.CalculatePath(hit.point, navPath);
+                            if(navPath.corners.Length == 0)return;
                             Data od = AMR.GetComponent<Data>();
                             if (od != null) {
                                 DockerManager.DMIM.SetDocker(od.RobotID, false);
+                                Destroy(RobotInstance.RIM.GetBody(od.RobotID).gameObject.GetComponent<Data>());
                                 Destroy(AMR.GetComponent<Data>());
                             }
-                            Debug.Log($"ABOUT TO MOVEEEEE {hit.point}");
                             AMRManager.AMRIM.SetDestination(ID, hit.point);
                             AMRManager.AMRIM.SetLastPosition(ID, AMR.transform.position);
                             AMRManager.AMRIM.SetMoving(ID, 0);
+                            Debug.Log($"ABOUT TO MOVEEEEE {hit.point} {navPath.corners.Length}");
                             agent.SetDestination(hit.point);
                             // SetGridPath(hit.point, AMRManager.AMRIM.GetQueue(ID), agent, ID);
                             // Debug.Log($"QUEUE AFTER MAKING GRID OR SOMETHING: {AMRManager.AMRIM.GetQueue(ID).Count} && {AMR.transform.position}");
@@ -180,8 +198,7 @@ public class AMRController : MonoBehaviour
         }
     }
 
-    public void MoveForward(int id, float distance)
-    {
+    public void MoveForward(int id, float distance){
         if(id != ID || distance < 0.0f)return;
         if (currentDirection == 3 || currentDirection == 1) transformPos = transform.position.z;
         else if (currentDirection == 0 || currentDirection == 2) transformPos = transform.position.x;
