@@ -169,8 +169,10 @@ public class AMRController : MonoBehaviour
                             }
                             AMRManager.AMRIM.SetDestination(ID, hit.point);
                             AMRManager.AMRIM.SetLastPosition(ID, AMR.transform.position);
+                            RobotInstance.RIM.AddToLog(new string[] {$"{DateTime.Now.TimeOfDay.ToString("hh\\:mm\\:ss\\.fffffff")}: About to broadcast.", "6495ED"});
                             AMRManager.AMRIM.SetMoving(ID, 0);
-                            Debug.Log($"ABOUT TO MOVEEEEE {hit.point} {navPath.corners.Length}");
+                            // Debug.Log($"ABOUT TO MOVEEEEE {hit.point} {navPath.corners.Length}");
+                            RobotInstance.RIM.SendCommand("to_start_nav", "client");
                             agent.SetDestination(hit.point);
                             // SetGridPath(hit.point, AMRManager.AMRIM.GetQueue(ID), agent, ID);
                             // Debug.Log($"QUEUE AFTER MAKING GRID OR SOMETHING: {AMRManager.AMRIM.GetQueue(ID).Count} && {AMR.transform.position}");
@@ -189,12 +191,16 @@ public class AMRController : MonoBehaviour
                             rod.RobotID = ID;
                             od.RobotID = int.Parse(position[1]);
                             od.ObjectID = ID;
+                            AMRManager.AMRIM.SetDestination(ID, docker.transform.position);
+                            AMRManager.AMRIM.SetLastPosition(ID, AMR.transform.position);
+                            AMRManager.AMRIM.SetMoving(ID, 0);
+                            RobotInstance.RIM.AddToLog(new string[] {$"{DateTime.Now.TimeOfDay.ToString("hh\\:mm\\:ss\\.fffffff")}: About to broadcast.", "6495ED"});
+                            RobotInstance.RIM.SendCommand("to_start_nav", "client");
                             agent.SetDestination(docker.transform.position);
                         }
                     }
                 }
             }
-
         }
     }
 

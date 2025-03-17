@@ -1,5 +1,6 @@
 import socket, threading, json, time
 from colorama import init, Fore, Style
+from datetime import datetime
 
 init()
 
@@ -43,7 +44,8 @@ def listen():
                 t1 = threading.Thread(target=send, args=(response, ))
                 t1.daemon = True
                 t1.start()
-
+            elif response == "to_start_nav":
+                print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-1]}: Starting NavMesh!\n")
             else:
                 print(Fore.GREEN + f"\nFROM SERVER:\n{response}\n" + Style.RESET_ALL)
     except:
@@ -306,22 +308,21 @@ def send(res):
             except:
                 print("Invalid number entered.\n")
                 continue
-            finally:
-                try:
-                    id = int(input("Enter the ID(id): "))
-                    if mode == "AMR" and id < AMR_COUNT and id >= 0:
-                        None
-                    elif mode in ["body", "extender"] and id < ROBOT_COUNT and id >= 0:
-                        None
-                    else: raise Exception
-                except:
-                    print("Invalid ID entered.")
-                    continue
-                finally:
-                    if stop_while:
-                        return
-                    data = json.dumps({"op": op ,"mode": mode, "distance": distance, "id": id}).encode('utf-8')
-                    client_socket.sendall(data + b"\n")
-                    print("Transmitted!\n")
+            try:
+                id = int(input("Enter the ID(id): "))
+                if mode == "AMR" and id < AMR_COUNT and id >= 0:
+                    None
+                elif mode in ["body", "extender"] and id < ROBOT_COUNT and id >= 0:
+                    None
+                else: raise Exception
+            except:
+                print("Invalid ID entered.")
+                continue
+
+            if stop_while:
+                return
+            data = json.dumps({"op": op ,"mode": mode, "distance": distance, "id": id}).encode('utf-8')
+            client_socket.sendall(data + b"\n")
+            print(f"{datetime.now().strftime("%H:%M:%S.%f")[:-1]}: Transmitted!\n")
 
 listen()

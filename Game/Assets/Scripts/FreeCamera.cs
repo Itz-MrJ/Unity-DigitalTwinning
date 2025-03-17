@@ -4,13 +4,17 @@ using UnityEngine;
 
 public class FreeCamera : MonoBehaviour
 {
+    public static FreeCamera FCI;
     public float moveSpeed = 3f;  // Speed of movement
     public float lookSpeed = 1f;   // Sensitivity of mouse movement
     public float scrollSpeed = 1f; // Speed of zooming
-
+    public bool UI = false;
     private float yaw = 0f;
     private float pitch = 0f;
-
+    void Awake(){
+        if (FCI) Destroy(gameObject);
+        else FCI = this;
+    }
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked; // Hide cursor and lock it to the center
@@ -18,6 +22,7 @@ public class FreeCamera : MonoBehaviour
 
     void Update()
     {
+        if(UI)return;
         // Mouse Look
         yaw += lookSpeed * Input.GetAxis("Mouse X");
         pitch -= lookSpeed * Input.GetAxis("Mouse Y");

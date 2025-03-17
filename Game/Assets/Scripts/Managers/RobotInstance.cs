@@ -28,6 +28,7 @@ public class RobotInstance : MonoBehaviour
 	// private string movement = "TimeTest";
 	private bool btnClicked = false;
 	private ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
+	private ConcurrentQueue<string[]> logQueue = new ConcurrentQueue<string[]>();
 
 	private void Awake()
 	{
@@ -42,6 +43,10 @@ public class RobotInstance : MonoBehaviour
 			SendCommand("main_thread", "client");
 			HandleInput(message);
         }
+		while (logQueue.TryDequeue(out string[] message))
+        {
+			LoggerContainer.LCI.AddColoredLine(message[0], message[1]);
+        }
     }
 
 	void Start()
@@ -52,14 +57,20 @@ public class RobotInstance : MonoBehaviour
 		// pingServer();
 	}
 
+	public void AddToLog(string[] s){
+		logQueue.Enqueue(s);
+	}
+
 	void StartServer(){
         serverThread = new Thread(() => {
             server = new TcpListener(IPAddress.Any, port);
             server.Start();
+			logQueue.Enqueue(new string[] {$"{DateTime.Now.TimeOfDay.ToString("hh\\:mm\\:ss\\.fffffff")}: Server started on port {port}", "008000"});
             Debug.Log($"Server started on port {port}");
 
             while (true){
                 TcpClient client = server.AcceptTcpClient();
+				logQueue.Enqueue(new string[] {$"{DateTime.Now.TimeOfDay.ToString("hh\\:mm\\:ss\\.fffffff")}: Client connected.", "000000"});
                 Debug.Log("Client connected");
 				stream = client.GetStream();
 				NetworkStreams.Add(client.GetStream());
@@ -98,8 +109,9 @@ public class RobotInstance : MonoBehaviour
                     int bytesRead = stream.Read(buffer, 0, buffer.Length);
                     if (bytesRead > 0)
                     {
-						SendCommand("received", "client");
                         string message = Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
+						logQueue.Enqueue(new string[] {$"{DateTime.Now.TimeOfDay.ToString("hh\\:mm\\:ss\\.fffffff")}: Received: {message}", "880808"});
+						SendCommand("received", "client");
                         Debug.Log($"Received message: {message}");
 						string[] parts;
 						parts = message.Split("\n");
@@ -107,7 +119,7 @@ public class RobotInstance : MonoBehaviour
 						{
 							for (int i = 0; i < parts.Length; i++)
 							{
-								messageQueue.Enqueue(parts[i]);				
+								messageQueue.Enqueue(parts[i]);
 							}
 						}
 						else messageQueue.Enqueue(message);
